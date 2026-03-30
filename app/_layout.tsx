@@ -1,21 +1,62 @@
-import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   DarkTheme,
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router"; // Added router & segments
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import "../global.css";
+
+import { GluestackUIProvider } from "@/components/ui/gluestack-ui-provider";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAuthStore } from "@/store/useAuthStore";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { ActivityIndicator, View } from "react-native";
+
 const queryClient = new QueryClient();
+
 export const unstable_settings = {
   anchor: "(tabs)",
 };
+
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const { initialize, isLoading, session } = useAuthStore();
+  const segments = useSegments();
+  const router = useRouter();
+
+  // 1. Wake up the Brain when the app starts!
+  useEffect(() => {
+    initialize();
+  }, []);
+
+  // 2. 🛡️ The Global Guard logic
+  useEffect(() => {
+    if (isLoading) return;
+
+    // Check where the user is trying to go
+    const inAuthGroup = segments[0] === "auth";
+
+    if (!session && !inAuthGroup) {
+      // 🛑 Not logged in? Force to Login!
+      router.replace("/auth/login");
+    } else if (session && (inAuthGroup || segments[0] === undefined)) {
+      // ✅ Logged in? Teleport to home!
+      router.replace("/(protected)/(tabs)");
+    }
+  }, [session, isLoading, segments]);
+
+  // 3. Show a loading screen if the Brain is thinking
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <GluestackUIProvider mode="light">
@@ -24,12 +65,8 @@ export default function RootLayout() {
         >
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(protected)" options={{ headerShown: false }} />
             <Stack.Screen name="auth" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="profile"
-              options={{ headerShown: true, title: "Profile" }}
-            />
           </Stack>
           <StatusBar style="auto" />
         </ThemeProvider>
