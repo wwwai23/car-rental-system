@@ -34,7 +34,7 @@ export default function LoginScreen() {
     // This prevents the "Race Condition" where the app redirects before the
     // background listener has updated the Brain.
     if (session) {
-      router.replace("/(protected)/(tabs)");
+      //router.replace("/(protected)/(tabs)");
     }
   };
 
