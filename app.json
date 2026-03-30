@@ -2,6 +2,7 @@
   "expo": {
     "name": "car-rental-practice",
     "slug": "car-rental-practice",
+
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -12,6 +13,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.winwinwai.car_rental_practice",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -44,6 +46,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d34e14c0-65ad-47c4-a44b-bfcd3dba928b"
+      }
     }
   }
 }

@@ -3,13 +3,16 @@ import { Redirect, Stack } from "expo-router";
 import React from "react";
 
 export default function ProtectedLayout() {
-  const { session, isLoading } = useAuthStore();
+  const { session, isLoading, hasOnboarded } = useAuthStore();
 
   if (isLoading) {
     return null; // Or a loading spinner
   }
 
   if (!session) {
+    if (!hasOnboarded) {
+      return <Redirect href="/onboarding" />;
+    }
     return <Redirect href="/auth/login" />;
   }
 

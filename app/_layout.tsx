@@ -23,7 +23,7 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const { initialize, isLoading, session } = useAuthStore();
+  const { initialize, isLoading, session, hasOnboarded } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
 
@@ -36,17 +36,24 @@ export default function RootLayout() {
   useEffect(() => {
     if (isLoading) return;
 
-    // Check where the user is trying to go
+    const inOnboarding = segments[0] === "onboarding";
     const inAuthGroup = segments[0] === "auth";
 
-    if (!session && !inAuthGroup) {
+    // First, check onboarding
+    if (!hasOnboarded && !inOnboarding) {
+      router.replace("/onboarding");
+      return;
+    }
+
+    // Then, check auth
+    if (!session && !inAuthGroup && hasOnboarded) {
       // 🛑 Not logged in? Force to Login!
       router.replace("/auth/login");
     } else if (session && (inAuthGroup || segments[0] === undefined)) {
       // ✅ Logged in? Teleport to home!
       router.replace("/(protected)/(tabs)");
     }
-  }, [session, isLoading, segments]);
+  }, [session, isLoading, segments, hasOnboarded]);
 
   // 3. Show a loading screen if the Brain is thinking
   if (isLoading) {
@@ -67,6 +74,7 @@ export default function RootLayout() {
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="(protected)" options={{ headerShown: false }} />
             <Stack.Screen name="auth" options={{ headerShown: false }} />
+            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           </Stack>
           <StatusBar style="auto" />
         </ThemeProvider>
