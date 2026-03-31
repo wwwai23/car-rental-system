@@ -1,21 +1,32 @@
 import { useAuthStore } from "@/store/useAuthStore";
-import { Redirect, Stack } from "expo-router";
-import React from "react";
-
+import { Stack, useRouter } from "expo-router";
+import React, { useEffect } from "react";
+import { ActivityIndicator, View } from "react-native";
 export default function ProtectedLayout() {
-  const { session, isLoading, hasOnboarded } = useAuthStore();
-
-  if (isLoading) {
-    return null; // Or a loading spinner
-  }
-
-  if (!session) {
-    if (!hasOnboarded) {
-      return <Redirect href="/onboarding" />;
+  const { session, isLoading, profile, getIsProfileIncomplete } =
+    useAuthStore();
+  const router = useRouter();
+  // Robustly handle redirection when the profile completes its background fetch
+  useEffect(() => {
+    if (isLoading || (session && profile === null)) return; // Still loading
+    if (!session) {
+      router.replace("/auth/login");
+    } else if (getIsProfileIncomplete()) {
+      router.replace("/auth/complete-profile");
     }
-    return <Redirect href="/auth/login" />;
+  }, [session, isLoading, profile]);
+  // Return loader while locked
+  if (isLoading || (session && profile === null)) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#16a8e3" />
+      </View>
+    );
   }
-
+  // Prevent flicker during redirect
+  if (!session || getIsProfileIncomplete()) {
+    return null;
+  }
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />

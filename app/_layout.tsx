@@ -3,7 +3,12 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-import { Stack, useRouter, useSegments } from "expo-router"; // Added router & segments
+import {
+  Stack,
+  useRootNavigationState,
+  useRouter,
+  useSegments,
+} from "expo-router"; // Added router & segments
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 import "../global.css";
@@ -23,9 +28,10 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const { initialize, isLoading, session, hasOnboarded } = useAuthStore();
+  const { initialize, isLoading, session } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
+  const rootNavigationState = useRootNavigationState(); // 👈 NEW: detect if Root Stack is loaded
 
   // 1. Wake up the Brain when the app starts!
   useEffect(() => {
@@ -34,26 +40,24 @@ export default function RootLayout() {
 
   // 2. 🛡️ The Global Guard logic
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !rootNavigationState?.key) return; // Wait until router is ready
 
-    const inOnboarding = segments[0] === "onboarding";
+    // Check where the user is trying to go
     const inAuthGroup = segments[0] === "auth";
 
-    // First, check onboarding
-    if (!hasOnboarded && !inOnboarding) {
-      router.replace("/onboarding");
-      return;
-    }
-
-    // Then, check auth
-    if (!session && !inAuthGroup && hasOnboarded) {
+    if (!session && !inAuthGroup) {
       // 🛑 Not logged in? Force to Login!
       router.replace("/auth/login");
-    } else if (session && (inAuthGroup || segments[0] === undefined)) {
-      // ✅ Logged in? Teleport to home!
-      router.replace("/(protected)/(tabs)");
+    } else if (session) {
+      // ✅ Logged in?
+      const inCompleteProfile = segments.join("/") === "auth/complete-profile";
+
+      if (!inCompleteProfile && (inAuthGroup || segments[0] === undefined)) {
+        // If they are logged in and trying to go to login/signup or the root index, teleport them to home!
+        router.replace("/(protected)/(tabs)");
+      }
     }
-  }, [session, isLoading, segments, hasOnboarded]);
+  }, [session, isLoading, segments, rootNavigationState?.key]);
 
   // 3. Show a loading screen if the Brain is thinking
   if (isLoading) {
@@ -74,7 +78,6 @@ export default function RootLayout() {
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="(protected)" options={{ headerShown: false }} />
             <Stack.Screen name="auth" options={{ headerShown: false }} />
-            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           </Stack>
           <StatusBar style="auto" />
         </ThemeProvider>
